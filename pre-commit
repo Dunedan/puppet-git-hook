@@ -1,0 +1,198 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+'''
+Author: Daniel Roschka <daniel@smaato.com>
+Copyright: Smaato Inc. 2013-2014
+URL: https://github.com/smaato/puppet-git-hook
+
+A git pre-commit and update hook for puppet which checks the following things:
+- syntax and code style check for all puppet manifests
+- syntax check for erb templates
+'''
+import os
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+
+def puppet_syntax_check(cwd, filename):
+    '''
+    Runs "puppet parser validate $filename" to check the syntax of a puppet
+    manifest
+    '''
+    routput = []
+    try:
+        syntax_check = subprocess.Popen(['puppet', 'parser', 'validate', filename], cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        output, error = syntax_check.communicate()
+        if syntax_check.returncode != 0:
+            if output:
+                routput.append(re.sub("\033\[[0-9;]+m", "", output).rstrip())
+            if error:
+                routput.append(re.sub("\033\[[0-9;]+m", "", error).rstrip())
+        return syntax_check.returncode, routput
+    except OSError as e:
+        if e.errno == os.errno.ENOENT:
+            return 1, "\033[1;31mpuppet not found. Install it to get this hook working.\033[1;m"
+        else:
+            return 1, "\033[1;31mUnknown error while calling the puppet syntax check.\033[1;m"
+
+
+def puppet_style_check(cwd, filename):
+    '''
+    Runs "puppet-lint --no-80-chars-check --fail-on-warnings $filename" to
+    check the style of a puppet manifest
+    '''
+    routput = []
+    try:
+        style_check = subprocess.Popen(['puppet-lint', '--no-80chars-check', '--fail-on-warnings', filename], cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        output, error = style_check.communicate()
+        if style_check.returncode != 0:
+            if output:
+                routput.append(re.sub("\033\[[0-9;]+m", "", output).rstrip())
+            if error:
+                routput.append(re.sub("\033\[[0-9;]+m", "", error).rstrip())
+        return style_check.returncode, routput
+    except OSError as e:
+        if e.errno == os.errno.ENOENT:
+            return 1, "\033[1;31mpuppet-lint not found. Install it to get this hook working.\033[1;m"
+        else:
+            return 1, "\033[1;31mUnknown error while calling the puppet style check.\033[1;m"
+
+
+def erb_syntax_check(cwd, filename):
+    routput = []
+    try:
+        erb_check = subprocess.Popen(["erb -P -x -T '-' %s | ruby -c" % filename], cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+        output, error = erb_check.communicate()
+        if erb_check.returncode != 0:
+            if output:
+                routput.append(re.sub("\033\[[0-9;]+m", "", output).rstrip())
+            if error:
+                routput.append(re.sub("\033\[[0-9;]+m", "", error).rstrip())
+        return erb_check.returncode, routput
+    except OSError as e:
+        if e.errno == os.errno.ENOENT:
+            return 1, "\033[1;31merb or ruby not found. Install them to get this hook working.\033[1;m"
+        else:
+            return 1, "\033[1;31mUnknown error while calling the erb template check.\033[1;m"
+
+
+def check_files(cwd, files):
+    syntax_check_returncode = 0
+    style_check_returncode = 0
+    erb_syntax_check_returncode = 0
+
+    for filename in files:
+        syntax_check_returncode_temp = 0
+        style_check_returncode_temp = 0
+        erb_syntax_check_returncode_temp = 0
+
+        # only check files which are existing, because git might list files which
+        # have been moved or removed with the commit.
+        if not os.path.isfile(os.path.join(cwd, filename)):
+            continue
+
+        # files ending with .pp should be puppet manifests and should pass
+        # trough the puppet syntax and style check
+        if filename.lower().endswith('.pp'):
+            syntax_check_returncode_temp, syntax_check_output = puppet_syntax_check(cwd, filename)
+            syntax_check_returncode = syntax_check_returncode+syntax_check_returncode_temp
+            style_check_returncode_temp, style_check_output = puppet_style_check(cwd, filename)
+            style_check_returncode = style_check_returncode_temp+style_check_returncode
+
+        # files ending with .erb should be erb templates and should pass
+        # trough the erb termplate syntax check
+        if filename.lower().endswith('.erb'):
+            erb_syntax_check_returncode_temp, erb_syntax_check_output = erb_syntax_check(cwd, filename)
+            erb_syntax_check_returncode = erb_syntax_check_returncode_temp+erb_syntax_check_returncode
+
+        if syntax_check_returncode_temp != 0 or style_check_returncode_temp != 0 or erb_syntax_check_returncode_temp != 0:
+            print "\033[1;37m"+filename+":\033[1;m"
+
+            if syntax_check_returncode_temp != 0:
+                print "\n".join(syntax_check_output)
+
+            if style_check_returncode_temp != 0:
+                print "\n".join(style_check_output)
+
+            if erb_syntax_check_returncode_temp != 0:
+                print "\n".join(erb_syntax_check_output)
+
+            print
+
+    # only print out messages if we've processed at least one file
+    if files:
+        if syntax_check_returncode != 0 or style_check_returncode != 0 or erb_syntax_check_returncode != 0:
+            if syntax_check_returncode != 0:
+                print "\033[1;31mSyntax check for puppet manifests failed!\033[1;m"
+
+            if style_check_returncode != 0:
+                print "\033[1;31mCode style check for puppet manifests failed!\033[1;m"
+
+            if erb_syntax_check_returncode != 0:
+                print "\033[1;31mSyntax check for erb templates failed!\033[1;m"
+
+            return 1
+        else:
+            print "\033[1;32mSyntax and code style check passed sucessfully.\033[1;m"
+            return 0
+
+
+if __name__ == '__main__':
+    script_name = os.path.basename(sys.argv[0])
+    files = []
+
+    # let's use startswith, because e.g. gitolite uses update.secondary for
+    # user defined update hooks
+    if script_name.startswith('update'):
+        branch = sys.argv[1]
+        oldrev = sys.argv[2]
+        newrev = sys.argv[3]
+
+        # allow to delete remote branches
+        if newrev == '0000000000000000000000000000000000000000':
+            sys.exit(0)
+
+        if oldrev == '0000000000000000000000000000000000000000':
+            files = os.popen('git diff-index --cached --name-only %s' % newrev).read().splitlines()
+        else:
+            files = os.popen('git diff --name-only %s..%s' % (oldrev, newrev)).read().splitlines()
+
+        # remove duplicates
+        files = list(set(files))
+
+        temp_dir = tempfile.mkdtemp()
+
+        try:
+            # create a directory containing the version of the repository we're trying to push
+            subprocess.check_output(['git archive '+newrev+' | tar -xC '+temp_dir], shell=True)
+        except OSError as e:
+            if e.errno == os.errno.ENOENT:
+                print "git not found. Install it to get this hook working."
+            else:
+                print "Unknown error while preparing temporary cloned repository."
+            sys.exit(1)
+
+        return_code = check_files(temp_dir, files)
+
+        try:
+            shutil.rmtree(temp_dir)
+        except OSError as e:
+            print "Problem while trying to remove the temporary cloned repository."
+            sys.exit(1)
+
+    elif script_name == 'pre-commit':
+        # stash changes which aren't being committed during this commit
+        stashed_diff, error = subprocess.Popen(['git', 'diff', '--full-index', '--binary'], stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
+        subprocess.call(['git', 'stash', '--keep-index'], stdout=subprocess.PIPE)
+
+        output, error = subprocess.Popen(['git', 'diff', '--cached', '--name-only'], stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
+        files = output.splitlines()
+        return_code = check_files("./", files)
+
+        # unstash stashed files again
+        subprocess.Popen(['git', 'apply', '--whitespace=nowarn'], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate(input=stashed_diff)
+        subprocess.call(['git', 'stash', 'drop', '-q'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    sys.exit(return_code)
