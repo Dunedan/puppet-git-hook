@@ -40,12 +40,12 @@ def puppet_syntax_check(cwd, filename):
 
 def puppet_style_check(cwd, filename):
     '''
-    Runs "puppet-lint --no-80-chars-check --fail-on-warnings $filename" to
+    Runs "puppet-lint --no-80-chars-check --no-puppet_url_without_modules-check --fail-on-warnings $filename" to
     check the style of a puppet manifest
     '''
     routput = []
     try:
-        style_check = subprocess.Popen(['puppet-lint', '--no-80chars-check', '--fail-on-warnings', filename], cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        style_check = subprocess.Popen(['puppet-lint', '--no-80chars-check', '--no-puppet_url_without_modules-check', '--fail-on-warnings', filename], cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         output, error = style_check.communicate()
         if style_check.returncode != 0:
             if output:
