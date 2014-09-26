@@ -27,9 +27,9 @@ def puppet_syntax_check(cwd, filename):
         output, error = syntax_check.communicate()
         if syntax_check.returncode != 0:
             if output:
-                routput.append(re.sub("\033\[[0-9;]+m", "", output).rstrip())
+                routput.append(re.sub(b"\033\[[0-9;]+m", "", output).rstrip().decode())
             if error:
-                routput.append(re.sub("\033\[[0-9;]+m", "", error).rstrip())
+                routput.append(re.sub(b"\033\[[0-9;]+m", "", error).rstrip().decode())
         return syntax_check.returncode, routput
     except OSError as e:
         if e.errno == os.errno.ENOENT:
@@ -49,9 +49,9 @@ def puppet_style_check(cwd, filename):
         output, error = style_check.communicate()
         if style_check.returncode != 0:
             if output:
-                routput.append(re.sub("\033\[[0-9;]+m", "", output).rstrip())
+                routput.append(re.sub(b"\033\[[0-9;]+m", "", output).rstrip().decode())
             if error:
-                routput.append(re.sub("\033\[[0-9;]+m", "", error).rstrip())
+                routput.append(re.sub(b"\033\[[0-9;]+m", "", error).rstrip().decode())
         return style_check.returncode, routput
     except OSError as e:
         if e.errno == os.errno.ENOENT:
@@ -67,9 +67,9 @@ def erb_syntax_check(cwd, filename):
         output, error = erb_check.communicate()
         if erb_check.returncode != 0:
             if output:
-                routput.append(re.sub("\033\[[0-9;]+m", "", output).rstrip())
+                routput.append(re.sub(b"\033\[[0-9;]+m", "", output).rstrip().decode())
             if error:
-                routput.append(re.sub("\033\[[0-9;]+m", "", error).rstrip())
+                routput.append(re.sub(b"\033\[[0-9;]+m", "", error).rstrip().decode())
         return erb_check.returncode, routput
     except OSError as e:
         if e.errno == os.errno.ENOENT:
@@ -108,34 +108,34 @@ def check_files(cwd, files):
             erb_syntax_check_returncode = erb_syntax_check_returncode_temp+erb_syntax_check_returncode
 
         if syntax_check_returncode_temp != 0 or style_check_returncode_temp != 0 or erb_syntax_check_returncode_temp != 0:
-            print "\033[1;37m"+filename+":\033[1;m"
+            print("\033[1;37m"+filename+":\033[1;m")
 
             if syntax_check_returncode_temp != 0:
-                print "\n".join(syntax_check_output)
+                print("\n".join(syntax_check_output))
 
             if style_check_returncode_temp != 0:
-                print "\n".join(style_check_output)
+                print("\n".join(style_check_output))
 
             if erb_syntax_check_returncode_temp != 0:
-                print "\n".join(erb_syntax_check_output)
+                print("\n".join(erb_syntax_check_output))
 
-            print
+            print('')
 
     # only print out messages if we've processed at least one file
     if files:
         if syntax_check_returncode != 0 or style_check_returncode != 0 or erb_syntax_check_returncode != 0:
             if syntax_check_returncode != 0:
-                print "\033[1;31mSyntax check for puppet manifests failed!\033[1;m"
+                print("\033[1;31mSyntax check for puppet manifests failed!\033[1;m")
 
             if style_check_returncode != 0:
-                print "\033[1;31mCode style check for puppet manifests failed!\033[1;m"
+                print("\033[1;31mCode style check for puppet manifests failed!\033[1;m")
 
             if erb_syntax_check_returncode != 0:
-                print "\033[1;31mSyntax check for erb templates failed!\033[1;m"
+                print("\033[1;31mSyntax check for erb templates failed!\033[1;m")
 
             return 1
         else:
-            print "\033[1;32mSyntax and code style check passed sucessfully.\033[1;m"
+            print("\033[1;32mSyntax and code style check passed sucessfully.\033[1;m")
             return 0
 
 
@@ -169,9 +169,9 @@ if __name__ == '__main__':
             subprocess.check_output(['git archive '+newrev+' | tar -xC '+temp_dir], shell=True)
         except OSError as e:
             if e.errno == os.errno.ENOENT:
-                print "git not found. Install it to get this hook working."
+                print("git not found. Install it to get this hook working.")
             else:
-                print "Unknown error while preparing temporary cloned repository."
+                print("Unknown error while preparing temporary cloned repository.")
             sys.exit(1)
 
         return_code = check_files(temp_dir, files)
@@ -179,7 +179,7 @@ if __name__ == '__main__':
         try:
             shutil.rmtree(temp_dir)
         except OSError as e:
-            print "Problem while trying to remove the temporary cloned repository."
+            print("Problem while trying to remove the temporary cloned repository.")
             sys.exit(1)
 
     elif script_name == 'pre-commit':
@@ -189,7 +189,7 @@ if __name__ == '__main__':
 
         output, error = subprocess.Popen(['git', 'diff', '--cached', '--name-only'], stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
         files = output.splitlines()
-        return_code = check_files("./", files)
+        return_code = check_files("./", [file.decode() for file in files])
 
         # unstash stashed files again
         subprocess.Popen(['git', 'apply', '--whitespace=nowarn'], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate(input=stashed_diff)
