@@ -27,9 +27,9 @@ def puppet_syntax_check(cwd, filename):
         output, error = syntax_check.communicate()
         if syntax_check.returncode != 0:
             if output:
-                routput.append(re.sub(b"\033\[[0-9;]+m", "", output).rstrip().decode())
+                routput.append(re.sub("\033\[[0-9;]+m", "", output.decode()).rstrip())
             if error:
-                routput.append(re.sub(b"\033\[[0-9;]+m", "", error).rstrip().decode())
+                routput.append(re.sub("\033\[[0-9;]+m", "", error.decode()).rstrip())
         return syntax_check.returncode, routput
     except OSError as e:
         if e.errno == os.errno.ENOENT:
@@ -49,9 +49,9 @@ def puppet_style_check(cwd, filename):
         output, error = style_check.communicate()
         if style_check.returncode != 0:
             if output:
-                routput.append(re.sub(b"\033\[[0-9;]+m", "", output).rstrip().decode())
+                routput.append(re.sub("\033\[[0-9;]+m", "", output.decode()).rstrip())
             if error:
-                routput.append(re.sub(b"\033\[[0-9;]+m", "", error).rstrip().decode())
+                routput.append(re.sub("\033\[[0-9;]+m", "", error.decode()).rstrip())
         return style_check.returncode, routput
     except OSError as e:
         if e.errno == os.errno.ENOENT:
@@ -67,9 +67,9 @@ def erb_syntax_check(cwd, filename):
         output, error = erb_check.communicate()
         if erb_check.returncode != 0:
             if output:
-                routput.append(re.sub(b"\033\[[0-9;]+m", "", output).rstrip().decode())
+                routput.append(re.sub("\033\[[0-9;]+m", "", output.decode()).rstrip())
             if error:
-                routput.append(re.sub(b"\033\[[0-9;]+m", "", error).rstrip().decode())
+                routput.append(re.sub("\033\[[0-9;]+m", "", error.decode()).rstrip())
         return erb_check.returncode, routput
     except OSError as e:
         if e.errno == os.errno.ENOENT:
