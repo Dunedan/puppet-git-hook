@@ -23,7 +23,10 @@ def puppet_syntax_check(cwd, filename):
     """Runs "puppet parser validate $filename" to check the syntax of a puppet manifest."""
     routput = []
     try:
-        syntax_check = subprocess.Popen(['puppet', 'parser', 'validate', filename], cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        syntax_check = subprocess.Popen(['puppet', 'parser', 'validate', filename],
+                                        cwd=cwd,
+                                        stdout=subprocess.PIPE,
+                                        stderr=subprocess.PIPE)
         output, error = syntax_check.communicate()
         if syntax_check.returncode != 0:
             if output:
@@ -46,7 +49,10 @@ def puppet_style_check(cwd, filename):
     """
     routput = []
     try:
-        style_check = subprocess.Popen(['puppet-lint', '--no-80chars-check', '--no-puppet_url_without_modules-check', '--fail-on-warnings', filename], cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        style_check = subprocess.Popen(['puppet-lint', '--no-80chars-check', '--no-puppet_url_without_modules-check', '--fail-on-warnings', filename],
+                                       cwd=cwd,
+                                       stdout=subprocess.PIPE,
+                                       stderr=subprocess.PIPE)
         output, error = style_check.communicate()
         if style_check.returncode != 0:
             if output:
@@ -65,7 +71,11 @@ def erb_syntax_check(cwd, filename):
     """Runs a syntax check for puppet erb templates, using erb."""
     routput = []
     try:
-        erb_check = subprocess.Popen(["erb -P -x -T '-' %s | ruby -c" % filename], cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+        erb_check = subprocess.Popen(["erb -P -x -T '-' %s | ruby -c" % filename],
+                                     cwd=cwd,
+                                     stdout=subprocess.PIPE,
+                                     stderr=subprocess.PIPE,
+                                     shell=True)
         output, error = erb_check.communicate()
         if erb_check.returncode != 0:
             if output:
@@ -193,15 +203,24 @@ if __name__ == '__main__':
 
     elif script_name == 'pre-commit':
         # stash changes which aren't being committed during this commit
-        stashed_diff, error = subprocess.Popen(['git', 'diff', '--full-index', '--binary'], stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
+        stashed_diff, error = subprocess.Popen(['git', 'diff', '--full-index', '--binary'],
+                                               stdout=subprocess.PIPE,
+                                               stderr=subprocess.PIPE).communicate()
         subprocess.call(['git', 'stash', '--keep-index'], stdout=subprocess.PIPE)
 
-        output, error = subprocess.Popen(['git', 'diff', '--cached', '--name-only'], stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
+        output, error = subprocess.Popen(['git', 'diff', '--cached', '--name-only'],
+                                         stdout=subprocess.PIPE,
+                                         stderr=subprocess.PIPE).communicate()
         files = output.splitlines()
         return_code = check_files("./", [file.decode() for file in files])
 
         # unstash stashed files again
-        subprocess.Popen(['git', 'apply', '--whitespace=nowarn'], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate(input=stashed_diff)
-        subprocess.call(['git', 'stash', 'drop', '-q'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        subprocess.Popen(['git', 'apply', '--whitespace=nowarn'],
+                         stdin=subprocess.PIPE,
+                         stdout=subprocess.PIPE,
+                         stderr=subprocess.PIPE).communicate(input=stashed_diff)
+        subprocess.call(['git', 'stash', 'drop', '-q'],
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE)
 
     sys.exit(return_code)
