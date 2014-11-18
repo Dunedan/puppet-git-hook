@@ -33,9 +33,9 @@ def puppet_syntax_check(cwd, filename):
         return syntax_check.returncode, routput
     except OSError as e:
         if e.errno == os.errno.ENOENT:
-            return 1, "\033[1;31mpuppet not found. Install it to get this hook working.\033[1;m"
+            return 1, ["\033[1;31mpuppet not found. Install it to get this hook working.\033[1;m"]
         else:
-            return 1, "\033[1;31mUnknown error while calling the puppet syntax check.\033[1;m"
+            return 1, ["\033[1;31mUnknown error while calling the puppet syntax check.\033[1;m"]
 
 
 def puppet_style_check(cwd, filename):
@@ -56,9 +56,9 @@ def puppet_style_check(cwd, filename):
         return style_check.returncode, routput
     except OSError as e:
         if e.errno == os.errno.ENOENT:
-            return 1, "\033[1;31mpuppet-lint not found. Install it to get this hook working.\033[1;m"
+            return 1, ["\033[1;31mpuppet-lint not found. Install it to get this hook working.\033[1;m"]
         else:
-            return 1, "\033[1;31mUnknown error while calling the puppet style check.\033[1;m"
+            return 1, ["\033[1;31mUnknown error while calling the puppet style check.\033[1;m"]
 
 
 def erb_syntax_check(cwd, filename):
@@ -75,9 +75,9 @@ def erb_syntax_check(cwd, filename):
         return erb_check.returncode, routput
     except OSError as e:
         if e.errno == os.errno.ENOENT:
-            return 1, "\033[1;31merb or ruby not found. Install them to get this hook working.\033[1;m"
+            return 1, ["\033[1;31merb or ruby not found. Install them to get this hook working.\033[1;m"]
         else:
-            return 1, "\033[1;31mUnknown error while calling the erb template check.\033[1;m"
+            return 1, ["\033[1;31mUnknown error while calling the erb template check.\033[1;m"]
 
 
 def check_files(cwd, files):
