@@ -1,14 +1,17 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-'''
+"""A git hook for syntax and style check of puppet manifests and templates.
+
+This hook can act as an pre-commit or update based on it's filename and checks
+the following things:
+- syntax and code style check for all puppet manifests
+- syntax check for erb templates
+
 Author: Daniel Roschka <daniel@smaato.com>
 Copyright: Smaato Inc. 2013-2014
 URL: https://github.com/smaato/puppet-git-hook
+"""
 
-A git pre-commit and update hook for puppet which checks the following things:
-- syntax and code style check for all puppet manifests
-- syntax check for erb templates
-'''
 import os
 import re
 import shutil
@@ -17,10 +20,7 @@ import sys
 import tempfile
 
 def puppet_syntax_check(cwd, filename):
-    '''
-    Runs "puppet parser validate $filename" to check the syntax of a puppet
-    manifest
-    '''
+    """Runs "puppet parser validate $filename" to check the syntax of a puppet manifest."""
     routput = []
     try:
         syntax_check = subprocess.Popen(['puppet', 'parser', 'validate', filename], cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -39,10 +39,11 @@ def puppet_syntax_check(cwd, filename):
 
 
 def puppet_style_check(cwd, filename):
-    '''
-    Runs "puppet-lint --no-80-chars-check --no-puppet_url_without_modules-check --fail-on-warnings $filename" to
-    check the style of a puppet manifest
-    '''
+    """Runs a puppet style check for a puppet manifest using puppet-lint.
+
+    Puppet lint is called in the following way to do the style check:
+    puppet-lint --no-80-chars-check --no-puppet_url_without_modules-check --fail-on-warnings $filename
+    """
     routput = []
     try:
         style_check = subprocess.Popen(['puppet-lint', '--no-80chars-check', '--no-puppet_url_without_modules-check', '--fail-on-warnings', filename], cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -61,6 +62,7 @@ def puppet_style_check(cwd, filename):
 
 
 def erb_syntax_check(cwd, filename):
+    """Runs a syntax check for puppet erb templates, using erb."""
     routput = []
     try:
         erb_check = subprocess.Popen(["erb -P -x -T '-' %s | ruby -c" % filename], cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
@@ -79,6 +81,7 @@ def erb_syntax_check(cwd, filename):
 
 
 def check_files(cwd, files):
+    """Method to find all files to check and to call the associated checks per file."""
     syntax_check_returncode = 0
     style_check_returncode = 0
     erb_syntax_check_returncode = 0
@@ -140,6 +143,12 @@ def check_files(cwd, files):
 
 
 if __name__ == '__main__':
+    """Main method which checks some environmental details, before calling the actual checks.
+
+    This method checks as what kind of hook (update or pre-commit) this script is running,
+    whether old or new references are empty, because that'll mean a branch has been created
+    or deleted which causes different behaviors.
+    """
     script_name = os.path.basename(sys.argv[0])
     files = []
 
