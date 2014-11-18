@@ -11,7 +11,7 @@ The hook can be either used as ```pre-commit``` hook in a working copy or as
 
 * Ensure you've the following binaries available on your system:
     * ```puppet```
-    * ```puppet-lint```
+    * ```puppet-lint``` (>= 1.0.0)
     * ```ruby```
     * ```erb```
 * Store the ```pre-commit``` script either named as ```pre-commit``` in the
