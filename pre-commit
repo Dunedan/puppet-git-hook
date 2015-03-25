@@ -81,17 +81,39 @@ def erb_syntax_check(cwd, filename):
     except OSError as e:
         return 1, ["\033[1;31mUnknown error while calling the erb template check.\033[1;m"]
 
+def yaml_syntax_check(cwd, filename):
+    """Runs a syntax check for yaml files, using ruby."""
+    fake_yaml_returncode = 0
+    routput = []
+    try:
+        yaml_check = subprocess.Popen(["%s -ryaml -e \"begin;YAML.load_file('%s');rescue Exception => e;STDERR.puts \\\"%s:#{e}\\\";end\"" % (find_executable('ruby'), filename, filename)],
+                                      cwd=cwd,
+                                      stdout=subprocess.PIPE,
+                                      stderr=subprocess.PIPE,
+                                      shell=True)
+        output, error = yaml_check.communicate()
+        if output:
+            routput.append(re.sub("\033\[[0-9;]+m", "", output.decode()).rstrip())
+        if error:
+            routput.append(re.sub("\033\[[0-9;]+m", "", error.decode()).rstrip())
+            fake_yaml_returncode = 1
+
+        return fake_yaml_returncode, routput
+    except OSError as e:
+        return 1, ["\033[1;31mUnknown error while calling the yaml file check.\033[1;m"]
 
 def check_files(cwd, files):
     """Method to find all files to check and to call the associated checks per file."""
     syntax_check_returncode = 0
     style_check_returncode = 0
     erb_syntax_check_returncode = 0
+    yaml_syntax_check_returncode = 0
 
     for filename in files:
         syntax_check_returncode_temp = 0
         style_check_returncode_temp = 0
         erb_syntax_check_returncode_temp = 0
+        yaml_syntax_check_returncode_temp = 0
 
         # only check files which are existing, because git might list files which
         # have been moved or removed with the commit.
@@ -112,7 +134,15 @@ def check_files(cwd, files):
             erb_syntax_check_returncode_temp, erb_syntax_check_output = erb_syntax_check(cwd, filename)
             erb_syntax_check_returncode = erb_syntax_check_returncode_temp+erb_syntax_check_returncode
 
-        if syntax_check_returncode_temp != 0 or style_check_returncode_temp != 0 or erb_syntax_check_returncode_temp != 0:
+        if filename.lower().endswith('.yaml'):
+            yaml_syntax_check_returncode_temp, yaml_syntax_check_output = yaml_syntax_check(cwd, filename)
+            yaml_syntax_check_returncode = yaml_syntax_check_returncode_temp+yaml_syntax_check_returncode
+
+        if syntax_check_returncode_temp != 0 \
+            or style_check_returncode_temp != 0 \
+            or erb_syntax_check_returncode_temp != 0 \
+            or yaml_syntax_check_returncode_temp != 0:
+
             print("\033[1;37m"+filename+":\033[1;m")
 
             if syntax_check_returncode_temp != 0:
@@ -124,11 +154,18 @@ def check_files(cwd, files):
             if erb_syntax_check_returncode_temp != 0:
                 print("\n".join(erb_syntax_check_output))
 
+            if yaml_syntax_check_returncode_temp != 0:
+                print("\n".join(yaml_syntax_check_output))
+
             print('')
 
     # only print out messages if we've processed at least one file
     if files:
-        if syntax_check_returncode != 0 or style_check_returncode != 0 or erb_syntax_check_returncode != 0:
+        if syntax_check_returncode != 0 \
+            or style_check_returncode != 0 \
+            or erb_syntax_check_returncode != 0 \
+            or yaml_syntax_check_returncode != 0:
+
             if syntax_check_returncode != 0:
                 print("\033[1;31mSyntax check for puppet manifests failed!\033[1;m")
 
@@ -137,6 +174,9 @@ def check_files(cwd, files):
 
             if erb_syntax_check_returncode != 0:
                 print("\033[1;31mSyntax check for erb templates failed!\033[1;m")
+
+            if yaml_syntax_check_returncode != 0:
+                print("\033[1;31mSyntax check for yaml files failed!\033[1;m")
 
             return 1
         else:
