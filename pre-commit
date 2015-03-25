@@ -8,7 +8,8 @@ the following things:
 - syntax check for erb templates
 
 Author: Daniel Roschka <daniel@smaato.com>
-Copyright: Smaato Inc. 2013-2014
+Author: Denny Schäfer <denny.schaefer@smaato.com>
+Copyright: Smaato Inc. 2013-2015
 URL: https://github.com/smaato/puppet-git-hook
 """
 
