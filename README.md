@@ -22,3 +22,9 @@ The hook can be either used as ```pre-commit``` hook in a working copy or as
 # Contribution
 
 Pull Requests are welcome!
+
+# Alternatives
+
+Check out the excellent [pre-commit framework](http://pre-commit.com/) with the
+puppet checks by Chris Kuehl, which have the same feature set:
+https://github.com/chriskuehl/puppet-pre-commit-hooks
